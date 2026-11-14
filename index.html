@@ -877,7 +877,7 @@ function mmNote(s, p, onDone) {
       const q = leaves[k], n = mmAt(s, q), ps = q.split("."), trail = [];
       for (let j = 2; j < ps.length; j++) trail.push(mmAt(s, ps.slice(0, j).join(".")).t);
       m.querySelector("#nb").innerHTML = `<p class="sm" style="margin:0 0 4px">${s.k} › ${trail.map(esc).join(" › ")}</p>
-      <div style="font-size:1.12rem;font-weight:800;line-height:1.45;margin-bottom:8px">${esc(n.t)}</div>
+      <div style="font-size:1.12rem;font-weight:800;line-height:1.45;margin-bottom:8px"><span class="${hlCls(`m${s.n}:${q}`).trim()}" style="border-radius:6px;padding:0 3px">${esc(n.t)}</span></div>
       ${(n.n || []).map(([kk, t], j) => { const [l, bg, bd, c] = MNK[kk] || MNK["설명"]; return `<div data-hk="mn${s.n}:${q}:${j}" style="background:${bg};border:1px solid ${bd};border-radius:14px;padding:10px 12px;margin:8px 0;line-height:1.7;font-size:1rem;white-space:pre-line;overflow-x:auto"><span style="display:inline-block;background:${c};color:#fff;font-size:.74rem;font-weight:800;border-radius:6px;padding:1px 7px;margin-right:6px">${l}</span><span class="hx">${esc(t)}</span></div>`; }).join("") || `<p class="sm">이 요점에는 따로 붙은 설명이 없어요.</p>`}
       <div class="hdots"><span class="sm">🖍 요점 통째로</span>${Object.entries(HLC).map(([kk, [l, c]]) => `<button data-nc="${kk}" class="hd${hlAll()[`m${s.n}:${q}`] === kk ? " on" : ""}" style="background:${c}" aria-label="${l}">${hlAll()[`m${s.n}:${q}`] === kk ? "✓" : ""}</button>`).join("")}${hlAll()[`m${s.n}:${q}`] ? `<button data-nc="" class="hx3">지우기</button>` : ""}</div>
       <p class="sm" style="margin:2px 0 0">설명 글자를 길게 눌러 선택하면 그 부분만 칠할 수 있어요</p>
@@ -885,7 +885,7 @@ function mmNote(s, p, onDone) {
       <div class="g2 mt">${k > 0 ? `<button class="btn b-gray" id="nPrev">‹ 앞 요점</button>` : "<span></span>"}${k < leaves.length - 1 ? `<button class="btn b-gray" id="nNext">다음 요점 ›</button>` : "<span></span>"}</div>`;
       m.querySelector("#nSay").onclick = () => TTS.play([{ text: mmSpeak(n.t), label: n.t.slice(0, 40) }, ...(n.n || []).map(([kk, t]) => ({ text: kk === "설명" ? t : `${kk}. ${t}`, label: `💬 ${kk}`, pause: 500 }))]);
       hlApplyAll(m);
-      m.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const key = `m${s.n}:${q}`; if (b.dataset.nc) { hlAll()[key] = b.dataset.nc; save(); } else hlSet(key, null); dirty = true; draw(); });
+      m.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const key = `m${s.n}:${q}`; if (b.dataset.nc) { hlAll()[key] = b.dataset.nc; save(); } else hlSet(key, null); dirty = false; draw(); onDone?.(); toast(b.dataset.nc ? "칠했어요 🖍" : "지웠어요"); });
       m.querySelector("#nPrev")?.addEventListener("click", () => { TTS.stop(true); k--; draw(); m.querySelector(".sbody").scrollTop = 0; });
       m.querySelector("#nNext")?.addEventListener("click", () => { TTS.stop(true); k++; draw(); m.querySelector(".sbody").scrollTop = 0; });
     };
