@@ -183,6 +183,8 @@ pre.code.reading{outline:3px solid #fde047}
 mark.hlm{color:inherit;border-radius:4px;padding:0 1px}
 #hlpop{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 96px);z-index:70;display:flex;align-items:center;gap:8px;background:#1f2937;border-radius:999px;padding:6px 8px;box-shadow:0 4px 14px rgb(0 0 0 / .3)}
 #hlpop .hd{width:30px;height:30px;border-radius:50%;border:2px solid #fff;padding:0;font-weight:800;font-size:.85rem;color:#111827}#hlpop .hd.on{outline:2px solid #fff;outline-offset:2px}
+.hdots{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 2px}.hdots .hd{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;padding:0;font-size:.8rem;font-weight:800;color:#111827}.hdots .hd.on{box-shadow:0 0 0 2px #111827}.hdots .hx3{border:0;background:none;color:var(--muted);font-weight:800;font-size:.85rem;padding:4px}
+[data-hk^="mn"] .hx{-webkit-user-select:text;user-select:text}
 #hlpop .hx2{border:0;background:none;color:#fff;font-weight:800;font-size:.85rem;padding:4px 6px}
 .mimg{background:#fff;border-radius:1.4rem;box-shadow:var(--shadow);overflow:auto;-webkit-overflow-scrolling:touch;max-height:70dvh}
 .mimg img{display:block}
@@ -729,6 +731,8 @@ function wireHl(redraw) {
 }
 const keepY = f => { const y = scrollY, m = $("#view .mmap"), x = m ? m.scrollLeft : 0; f(); scrollTo(0, y); const m2 = $("#view .mmap"); if (m2) m2.scrollLeft = x; };
 function hlBase(k, c) {
+  const mn = k.match(/^mn(\d+):(.+):(\d+)$/);
+  if (mn) { const x = hlBase(`m${mn[1]}:${mn[2]}`, c); return x && { ...x, sub: x.sub + " 설명", ord: x.ord + 0.5 }; }
   const m = k.match(/^m(\d+):(.+)$/);
   if (m) { if (typeof MM === "undefined" || !MM.length) return null; const s = MM.find(x => x.n === +m[1]); if (!s) return null; let n; try { n = mmAt(s, m[2]); } catch { return null; } if (!n) return null;
     return { k, c, kind: "m", s, p: m[2], t: n.t, sub: s.k ? `🧠 ${s.k} 마인드맵` : `🧠 ${s.n}절 마인드맵`, say: [mmSpeak(n.t), ...(n.n || []).map(([kk, t]) => kk === "설명" ? t : `${kk}. ${t}`)].join(". "), ord: s.n * 1e6 + m[2].split(".").slice(1).reduce((a, v) => a * 40 + +v, 0) }; }
@@ -812,7 +816,7 @@ document.addEventListener("selectionchange", () => { clearTimeout(hlT0); hlT0 = 
   const sel = getSelection(); if (!sel || sel.isCollapsed || !sel.rangeCount) { if ($("#hlpop") && !hlSel?.keep) hlPop(false); return; }
   const r = sel.getRangeAt(0), a = r.startContainer, b = r.endContainer;
   const el = (a.nodeType === 1 ? a : a.parentElement)?.closest("[data-hk]"), el2 = (b.nodeType === 1 ? b : b.parentElement)?.closest("[data-hk]");
-  if (!el || el !== el2 || !$("#view").contains(el)) { hlPop(false); return; }
+  if (!el || el !== el2) { hlPop(false); return; }
   const box = hlBox(el); if (!box.contains(a) || !box.contains(b)) { hlPop(false); return; }
   let s = hlTextOff(box, a, r.startOffset), e = hlTextOff(box, b, r.endOffset); if (s < 0 || e <= s) return;
   const full = box.textContent; while (s < e && /\s/.test(full[s])) s++; while (e > s && /\s/.test(full[e - 1])) e--; if (e <= s) return;
@@ -874,11 +878,13 @@ function mmNote(s, p, onDone) {
       for (let j = 2; j < ps.length; j++) trail.push(mmAt(s, ps.slice(0, j).join(".")).t);
       m.querySelector("#nb").innerHTML = `<p class="sm" style="margin:0 0 4px">${s.k} › ${trail.map(esc).join(" › ")}</p>
       <div style="font-size:1.12rem;font-weight:800;line-height:1.45;margin-bottom:8px">${esc(n.t)}</div>
-      ${(n.n || []).map(([kk, t]) => { const [l, bg, bd, c] = MNK[kk] || MNK["설명"]; return `<div style="background:${bg};border:1px solid ${bd};border-radius:14px;padding:10px 12px;margin:8px 0;line-height:1.7;font-size:1rem;white-space:pre-line;overflow-x:auto"><span style="display:inline-block;background:${c};color:#fff;font-size:.74rem;font-weight:800;border-radius:6px;padding:1px 7px;margin-right:6px">${l}</span>${esc(t)}</div>`; }).join("") || `<p class="sm">이 요점에는 따로 붙은 설명이 없어요.</p>`}
-      <div class="hlc" style="grid-template-columns:repeat(5,1fr)">${Object.entries(HLC).map(([kk, [l, c]]) => `<button data-nc="${kk}" class="${hlAll()[`m${s.n}:${q}`] === kk ? "on" : ""}" style="background:${c}">🖍${l}</button>`).join("")}<button data-nc="" style="background:#eef0f3">지우기</button></div>
+      ${(n.n || []).map(([kk, t], j) => { const [l, bg, bd, c] = MNK[kk] || MNK["설명"]; return `<div data-hk="mn${s.n}:${q}:${j}" style="background:${bg};border:1px solid ${bd};border-radius:14px;padding:10px 12px;margin:8px 0;line-height:1.7;font-size:1rem;white-space:pre-line;overflow-x:auto"><span style="display:inline-block;background:${c};color:#fff;font-size:.74rem;font-weight:800;border-radius:6px;padding:1px 7px;margin-right:6px">${l}</span><span class="hx">${esc(t)}</span></div>`; }).join("") || `<p class="sm">이 요점에는 따로 붙은 설명이 없어요.</p>`}
+      <div class="hdots"><span class="sm">🖍 요점 통째로</span>${Object.entries(HLC).map(([kk, [l, c]]) => `<button data-nc="${kk}" class="hd${hlAll()[`m${s.n}:${q}`] === kk ? " on" : ""}" style="background:${c}" aria-label="${l}">${hlAll()[`m${s.n}:${q}`] === kk ? "✓" : ""}</button>`).join("")}${hlAll()[`m${s.n}:${q}`] ? `<button data-nc="" class="hx3">지우기</button>` : ""}</div>
+      <p class="sm" style="margin:2px 0 0">설명 글자를 길게 눌러 선택하면 그 부분만 칠할 수 있어요</p>
       <button class="btn b-purple mt" id="nSay">🔊 읽어 주기</button>
       <div class="g2 mt">${k > 0 ? `<button class="btn b-gray" id="nPrev">‹ 앞 요점</button>` : "<span></span>"}${k < leaves.length - 1 ? `<button class="btn b-gray" id="nNext">다음 요점 ›</button>` : "<span></span>"}</div>`;
       m.querySelector("#nSay").onclick = () => TTS.play([{ text: mmSpeak(n.t), label: n.t.slice(0, 40) }, ...(n.n || []).map(([kk, t]) => ({ text: kk === "설명" ? t : `${kk}. ${t}`, label: `💬 ${kk}`, pause: 500 }))]);
+      hlApplyAll(m);
       m.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const key = `m${s.n}:${q}`; if (b.dataset.nc) { hlAll()[key] = b.dataset.nc; save(); } else hlSet(key, null); dirty = true; draw(); });
       m.querySelector("#nPrev")?.addEventListener("click", () => { TTS.stop(true); k--; draw(); m.querySelector(".sbody").scrollTop = 0; });
       m.querySelector("#nNext")?.addEventListener("click", () => { TTS.stop(true); k++; draw(); m.querySelector(".sbody").scrollTop = 0; });
