@@ -184,7 +184,7 @@ mark.hlm{color:inherit;border-radius:4px;padding:0 1px}
 #hlpop{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 96px);z-index:70;display:flex;align-items:center;gap:8px;background:#1f2937;border-radius:999px;padding:6px 8px;box-shadow:0 4px 14px rgb(0 0 0 / .3)}
 #hlpop .hd{width:30px;height:30px;border-radius:50%;border:2px solid #fff;padding:0;font-weight:800;font-size:.85rem;color:#111827}#hlpop .hd.on{outline:2px solid #fff;outline-offset:2px}
 .hdots{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 2px}.hdots .hd{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d1d5db;padding:0;font-size:.8rem;font-weight:800;color:#111827}.hdots .hd.on{box-shadow:0 0 0 2px #111827}.hdots .hx3{border:0;background:none;color:var(--muted);font-weight:800;font-size:.85rem;padding:4px}
-[data-hk^="mn"] .hx{-webkit-user-select:text;user-select:text}
+.sheet [data-hk] .hx{-webkit-user-select:text;user-select:text}
 #hlpop .hx2{border:0;background:none;color:#fff;font-weight:800;font-size:.85rem;padding:4px 6px}
 .mimg{background:#fff;border-radius:1.4rem;box-shadow:var(--shadow);overflow:auto;-webkit-overflow-scrolling:touch;max-height:70dvh}
 .mimg img{display:block}
@@ -808,7 +808,7 @@ function hlApplySel(c) {
     if (r[1] > e) out.push([e, r[1], r[2], (r[3] || "").slice(e - r[0])]); }
   if (c) out.push([s, e, c, txt]);
   if (out.length) R[k] = out.sort((a, b) => a[0] - b[0]); else delete R[k];
-  save(); try { getSelection().removeAllRanges(); } catch {} hlPop(false); if (el.isConnected) hlRefresh(el);
+  save(); try { getSelection().removeAllRanges(); } catch {} hlPop(false); document.querySelectorAll("[data-hk]").forEach(x => { if (x.dataset.hk === k) hlRefresh(x); });
   if (c) toast("칠했어요 🖍"); else toast("지웠어요");
 }
 let hlT0 = 0;
@@ -882,7 +882,7 @@ function mmNote(s, p, onDone) {
       const q = leaves[k], n = mmAt(s, q), ps = q.split("."), trail = [];
       for (let j = 2; j < ps.length; j++) trail.push(mmAt(s, ps.slice(0, j).join(".")).t);
       m.querySelector("#nb").innerHTML = `<p class="sm" style="margin:0 0 4px">${s.k} › ${trail.map(esc).join(" › ")}</p>
-      <div style="font-size:1.12rem;font-weight:800;line-height:1.45;margin-bottom:8px"><span class="${hlCls(`m${s.n}:${q}`).trim()}" style="border-radius:6px;padding:0 3px">${esc(n.t)}</span></div>
+      <div data-hk="m${s.n}:${q}" style="font-size:1.12rem;font-weight:800;line-height:1.45;margin-bottom:8px"><span class="hx ${hlCls(`m${s.n}:${q}`).trim()}" style="border-radius:6px;padding:0 3px">${esc(n.t)}</span></div>
       ${(n.n || []).map(([kk, t], j) => { const [l, bg, bd, c] = MNK[kk] || MNK["설명"]; return `<div data-hk="mn${s.n}:${q}:${j}" style="background:${bg};border:1px solid ${bd};border-radius:14px;padding:10px 12px;margin:8px 0;line-height:1.7;font-size:1rem;white-space:pre-line;overflow-x:auto"><span style="display:inline-block;background:${c};color:#fff;font-size:.74rem;font-weight:800;border-radius:6px;padding:1px 7px;margin-right:6px">${l}</span><span class="hx">${esc(t)}</span></div>`; }).join("") || `<p class="sm">이 요점에는 따로 붙은 설명이 없어요.</p>`}
       
       <button class="btn b-purple mt" id="nSay">🔊 읽어 주기</button>
