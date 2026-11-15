@@ -697,7 +697,7 @@ function viewSection(arg) {
     <div class="g2">${arg.i > 0 ? `<button class="btn b-gray" id="sPrev">‹ 이전 절</button>` : "<span></span>"}${arg.i < P.s.length - 1 ? `<button class="btn b-gray" id="sNextSec">다음 절 ›</button>` : ""}</div>`;
     wireHead({ p: arg.p });
     const items = from => blocks.map((b, i) => ({ b, i })).slice(from).map(({ b, i }) => ({
-      text: b.t === "code" ? "코드 예시는 화면을 봐 주세요." : b.t === "box" ? `${b.k}. ${b.x}` : b.x, el: $(`#view [data-r="${i}" data-hk="${bk(b)}"]`), label: b.t === "code" ? "💻 코드 (화면 보기)" : (b.x || "").slice(0, 36), pause: b.t === "code" ? 1200 : b.t.startsWith("h") ? 450 : 300 }));
+      text: b.t === "code" ? "코드 예시는 화면을 봐 주세요." : b.t === "box" ? `${b.k}. ${b.x}` : b.x, el: $(`#view [data-r="${i}"]`), label: b.t === "code" ? "💻 코드 (화면 보기)" : (b.x || "").slice(0, 36), pause: b.t === "code" ? 1200 : b.t.startsWith("h") ? 450 : 300 }));
     $("#sListen").onclick = () => TTS.play(items(0));
     $("#view").querySelectorAll("[data-hk]").forEach(el => { const c = hlAll()[el.dataset.hk]; if (c) el.classList.add("hl-" + c); });
     wireHl(() => keepY(() => viewSection({ ...arg, focus: undefined })));
