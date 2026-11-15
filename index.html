@@ -192,6 +192,7 @@ mark.has-memo::after{content:"📝";font-size:.75em;margin-left:2px;vertical-ali
 .mimg{background:#fff;border-radius:1.4rem;box-shadow:var(--shadow);overflow:auto;-webkit-overflow-scrolling:touch;max-height:70dvh}
 .mimg img{display:block}
 @media (min-width:900px){.wrap,.nav nav{max-width:44rem}}
+::highlight(tts){background-color:#dbeafe;color:inherit}
 </style>
 </head>
 <body>
@@ -285,11 +286,12 @@ const TTS = {
     if (it.el) { it.el.classList.add("reading"); it.el.scrollIntoView({ block: "center", behavior: "smooth" }); }
     $("#plText").textContent = it.label || it.text.slice(0, 40);
     it.onShow?.();
-    const parts = chunks(say(it.text)); let k = 0;
+    const parts = []; ttsSent(it.text).forEach(sg => chunks(say(sg)).forEach((c, j) => parts.push({ t: c, seg: j === 0 ? sg : null }))); let k = 0, hp = 0; ttsClear();
     const speakPart = () => {
       if (!this.on) return;
       if (k >= parts.length) { this.i++; this.timer = setTimeout(() => this.next(), it.pause ?? 250); return; }
-      const u = this.u = new SpeechSynthesisUtterance(parts[k++]);
+      const pp = parts[k++]; if (pp.seg) hp = ttsMark(it.el, pp.seg, hp);
+      const u = this.u = new SpeechSynthesisUtterance(pp.t);
       u.lang = "ko-KR"; const v = this.noVoice ? null : this.voice(); if (v) u.voice = v; u.rate = S.set.rate || 1;
       clearTimeout(this.wd);
       this.wd = setTimeout(() => { if (this.on) { speechSynthesis.cancel(); speakPart(); } }, 4000 + u.text.length * 260 / u.rate);
@@ -310,7 +312,7 @@ const TTS = {
     this.on = false; clearTimeout(this.timer); clearTimeout(this.wd);
     try { if (!soft || was || speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel(); } catch {}
     document.querySelectorAll(".reading").forEach(e => e.classList.remove("reading"));
-    $("#player").hidden = true; this.lock?.release?.().catch(() => {}); this.lock = null;
+    ttsClear(); $("#player").hidden = true; this.lock?.release?.().catch(() => {}); this.lock = null;
     if (!silent) { const f = this.onStop; this.onStop = null; f?.(); }
   },
 };
@@ -324,6 +326,20 @@ function say(t) {
     .replace(/\bOS\b/g, "오에스").replace(/\bOSI\b/g, "오에스아이").replace(/\bTCP\b/g, "티씨피").replace(/\bUDP\b/g, "유디피").replace(/\bIP\b/g, "아이피")
     .replace(/\bUI\b/g, "유아이").replace(/\bUX\b/g, "유엑스").replace(/\bSW\b/g, "소프트웨어").replace(/\bDB\b/g, "디비").replace(/\bDBMS\b/g, "디비엠에스")
     .replace(/→/g, ", 다음 ").replace(/[·ㆍ]/g, ", ").replace(/[<>{}\[\]|*#=;]/g, " ").replace(/\s+/g, " ").trim();
+}
+/* 읽는 문장을 옅은 하늘색으로 따라가며 보여 줘요 (글자는 바꾸지 않고 덧칠만) */
+const TTS_HL = (() => { try { return !!(window.CSS && CSS.highlights && window.Highlight); } catch { return false; } })();
+function ttsSent(t) { const a = String(t).match(/[^.!?。]+[.!?。]*["'”’)]*\s*|[.!?。]+\s*/g) || [String(t)]; const out = []; for (const x of a) { if (out.length && out[out.length - 1].trim().length < 6) out[out.length - 1] += x; else out.push(x); } return out; }
+function ttsClear() { try { if (TTS_HL) CSS.highlights.delete("tts"); } catch {} }
+function ttsMark(el, seg, from) {
+  if (!TTS_HL || !el || !el.isConnected) return from;
+  const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), nodes = []; let n, full = "";
+  while ((n = tw.nextNode())) { nodes.push([n, full.length]); full += n.nodeValue; }
+  const key = seg.trim(); if (!key) return from;
+  let i = full.indexOf(key, from); if (i < 0) i = full.indexOf(key); if (i < 0) { ttsClear(); return from; }
+  const e = i + key.length, at = pos => { for (let j = nodes.length - 1; j >= 0; j--) if (nodes[j][1] <= pos) return [nodes[j][0], Math.min(pos - nodes[j][1], nodes[j][0].nodeValue.length)]; return [nodes[0][0], 0]; };
+  try { const r = document.createRange(), [a, ao] = at(i), [b, bo] = at(e); r.setStart(a, ao); r.setEnd(b, bo); CSS.highlights.set("tts", new Highlight(r)); } catch {}
+  return e;
 }
 function chunks(t) { const out = []; let cur = ""; for (const s of t.split(/(?<=[.!?])\s+/)) { if ((cur + " " + s).length > 160 && cur) { out.push(cur); cur = s; } else cur = cur ? cur + " " + s : s; } if (cur) out.push(cur); return out; }
 
@@ -917,7 +933,7 @@ function mmNote(s, p, onDone) {
       
       <button class="btn b-purple mt" id="nSay">🔊 읽어 주기</button>
       <div class="g2 mt">${k > 0 ? `<button class="btn b-gray" id="nPrev">‹ 앞 요점</button>` : "<span></span>"}${k < leaves.length - 1 ? `<button class="btn b-gray" id="nNext">다음 요점 ›</button>` : "<span></span>"}</div>`;
-      m.querySelector("#nSay").onclick = () => TTS.play([{ text: mmSpeak(n.t), label: n.t.slice(0, 40) }, ...(n.n || []).map(([kk, t]) => ({ text: kk === "설명" ? t : `${kk}. ${t}`, label: `💬 ${kk}`, pause: 500 }))]);
+      m.querySelector("#nSay").onclick = () => TTS.play([{ text: mmSpeak(n.t), label: n.t.slice(0, 40), el: m.querySelector(`[data-hk="m${s.n}:${q}"]`) }, ...(n.n || []).map(([kk, t], j) => ({ text: kk === "설명" ? t : `${kk}. ${t}`, label: `💬 ${kk}`, pause: 500, el: m.querySelector(`[data-hk="mn${s.n}:${q}:${j}"]`) }))]);
       hlApplyAll(m);
       m.querySelector("[data-memo]").onclick = () => { const key = `m${s.n}:${q}`; hlMemoModal(n.t, (S.memo || {})[key], v => { S.memo = S.memo || {}; if (v) S.memo[key] = v; else delete S.memo[key]; save(); draw(); onDone?.(); toast(v ? "메모를 붙였어요 📝" : "메모를 지웠어요"); }); };
       m.querySelectorAll("[data-nc]").forEach(b => b.onclick = () => { const key = `m${s.n}:${q}`; if (b.dataset.nc) { hlAll()[key] = b.dataset.nc; save(); } else hlSet(key, null); dirty = false; draw(); onDone?.(); toast(b.dataset.nc ? "칠했어요 🖍" : "지웠어요"); });
